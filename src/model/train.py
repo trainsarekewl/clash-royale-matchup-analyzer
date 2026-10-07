@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 from data.encode import load_card_index_dict
 from data.dataset import BattlelogDataset
 from data.splits import split_dataset
+from api.battlelog_balloon import getData
 from pathlib import Path
 
 
@@ -30,12 +31,14 @@ def accuracy(predictions, labels):
     return correct.mean().item()
 
 def main():
+    getData()
+
     card_index_dict, n_cards = load_card_index_dict()
 
     BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
     dataset = BattlelogDataset(BASE_DIR / "exports/battlelog_balloon.json", card_index_dict, n_cards)
-
+    print(f"dataset size: {len(dataset)}")
     train_set, val_set, test_set = split_dataset(dataset)
 
     train_loader = DataLoader(train_set, batch_size=36, shuffle=True)
@@ -47,6 +50,8 @@ def main():
     model = winPredictor(n_cards)
     criterion = nn.BCELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    
+    l1_lambda = 0.0001
 
     #training loop
     epochs = 10
@@ -58,6 +63,9 @@ def main():
         for xb, yb in train_loader:
             predictions = model(xb)
             loss = criterion(predictions, yb.unsqueeze(1))
+            l1_norm = sum(p.abs().sum() for p in model.parameters())
+            loss += l1_lambda * l1_norm
+
             acc = accuracy(predictions, yb.unsqueeze(1))
 
             optimizer.zero_grad()

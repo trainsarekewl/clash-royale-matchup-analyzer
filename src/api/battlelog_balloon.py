@@ -80,12 +80,14 @@ def build_master(data):
         battle_id = battle["team"][0]["tag"] + ": " + battle.get("battleTime")
         battle_type = battle.get("type")
 
+        opponent_battle_deck = {card["name"] for card in battle["opponent"][0]["cards"]}
         battle_deck = {card["name"] for card in battle["team"][0]["cards"]}
 
-        # make sure it is ranked, using the correct deck, and not duplicate
+        # make sure it is ranked, using the correct deck, opponent using different deck, and not duplicate
         if (battle_id not in seen
             and battle_type == "pathOfLegend"
-            and battle_deck == target_deck):
+            and battle_deck == target_deck
+            and opponent_battle_deck != target_deck):
 
             seen.add(battle_id)
             unique.append(battle)
@@ -112,10 +114,9 @@ def export_splits():
     print("Mine:", len(mine), "Others:", len(others))
 
 
-def main():
+def getData():
     raw = fetch_battlelog(player_tags_list)
     build_master(raw)
     export_splits()
 
-if __name__ == "__main__":
-    main()
+getData()
